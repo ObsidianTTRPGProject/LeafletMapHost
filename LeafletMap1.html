@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Leaflet Map Example</title>
+  <title>Leaflet Map Example – Adelaide</title>
 
   <!-- 1) Include Leaflet's CSS in the <head> -->
   <link
@@ -12,7 +12,7 @@
     crossorigin=""
   />
 
-  <!-- 2) (Optional) Set basic styles so the <body> has no default margins -->
+  <!-- 2) (Optional) Reset margins and ensure the map has a height -->
   <style>
     html, body {
       margin: 0;
@@ -22,16 +22,16 @@
     /* 3) Make sure the #map container has a height */
     #map {
       width: 100%;
-      height: 400px; /* adjust as desired */
+      height: 500px; /* adjust height as needed */
     }
   </style>
 </head>
 
 <body>
-  <!-- 4) Put a div where the map should go -->
+  <!-- 4) Map container -->
   <div id="map"></div>
 
-  <!-- 5) Include Leaflet's JS just before your own initialization script -->
+  <!-- 5) Include Leaflet's JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-3UHZq0Hbk4I7yqxxAC3V+g+gGL+2ZxwD2JDPrd2VyrI="
@@ -40,19 +40,34 @@
 
   <!-- 6) Initialize the map -->
   <script>
-    // (a) Create the map object, centering at latitude 51.505, longitude –0.09, zoom 13
-    var map = L.map("map").setView([51.505, -0.09], 13);
+    // (a) Create the map, centered on Adelaide (lat: -34.9285, lng: 138.6007), zoom level 13
+    var map = L.map("map").setView([-34.9285, 138.6007], 13);
 
-    // (b) Add the OpenStreetMap tile layer (default Leaflet example)
+    // (b) Add the OpenStreetMap tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
+      maxZoom: 19,
     }).addTo(map);
 
-    // (c) (Optional) Add a marker at the same location
-    L.marker([51.505, -0.09])
-      .addTo(map)
-      .bindPopup("A pretty marker.<br> Easily customizable.")
+    // (c) Add a marker at the Adelaide CBD
+    var adelaideMarker = L.marker([-34.9285, 138.6007]).addTo(map);
+
+    // (d) Bind a popup to the marker
+    adelaideMarker
+      .bindPopup("<b>Adelaide CBD</b><br>King William Road entrance.")
       .openPopup();
+
+    // (e) Example: draw a circle around the marker
+    L.circle([-34.9285, 138.6007], {
+      color: "blue",
+      fillColor: "#30f",
+      fillOpacity: 0.2,
+      radius: 1000, // radius in meters
+    }).addTo(map);
+
+    // (f) Example: add a second marker (e.g. Adelaide Oval)
+    var ovalMarker = L.marker([-34.9180, 138.6069]).addTo(map);
+    ovalMarker.bindPopup("<b>Adelaide Oval</b><br>Iconic stadium").openPopup();
   </script>
 </body>
 </html>
