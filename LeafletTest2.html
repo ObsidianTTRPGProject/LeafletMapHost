@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Leaflet Custom Battlemap with Markers</title>
+  <title>Leaflet Custom Battlemap with Multiple Markers</title>
 
-  <!-- 1) Leaflet CSS (no integrity to avoid possible SRI issues) -->
+  <!-- 1) Leaflet CSS (no integrity to avoid SRI issues) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -29,7 +29,7 @@
 <body>
   <!-- 3) Optional heading to confirm the page is loading -->
   <h2 style="text-align: center; margin: 10px 0;">
-    Custom Battlemap (66-Road-Encounter-L) with Obsidian Markers
+    Custom Battlemap (66-Road-Encounter-L) with Multiple Obsidian Markers
   </h2>
 
   <!-- 4) Leaflet map container -->
@@ -49,18 +49,13 @@
       maxZoom: 2
     });
 
-    // ▮ B) The pixel dimensions of your JPEG/PNG battlemap.
-    //    In this example, 66-Road-Encounter-L.jpg is 1100×1130 px.
+    // ▮ B) The pixel dimensions of your battlemap image
+    //    For 66-Road-Encounter-L.jpg, the size is 1100×1130 px.
     var imgWidth  = 1100;
     var imgHeight = 1130;
 
-    // ▮ C) Compute “bounds” in CRS.Simple coordinates.
-    //    Leaflet expects [[topLeftY, topLeftX], [bottomRightY, bottomRightX]].
-    //
-    //    For a Simple CRS map, (0,0) is the top-left of the image:
-    //      → top-left pixel = [0, 0]
-    //      → bottom-right = [imgHeight, imgWidth]
-    //
+    // ▮ C) Compute “bounds” in CRS.Simple coordinates:
+    //    Top-left = [0, 0], bottom-right = [imgHeight, imgWidth]
     var imageBounds = [[0, 0], [imgHeight, imgWidth]];
 
     // ▮ D) Add the image overlay to the map
@@ -69,18 +64,18 @@
       imageBounds
     ).addTo(map);
 
-    // ▮ E) Center & zoom so the entire image is visible at first
+    // ▮ E) Center & zoom so the entire image is visible initially
     var centerPoint = L.latLng(imgHeight / 2, imgWidth / 2);
     map.setView(centerPoint, 0);
 
-    // ▮ F) Constrain panning so users can’t drag outside the image
+    // ▮ F) Constrain panning so users cannot drag outside the image
     map.setMaxBounds(imageBounds);
     map.on('drag', function() {
       map.panInsideBounds(imageBounds, { animate: false });
     });
 
-    // ▮ G) (OPTIONAL) Draw a grid overlay if you want a 5-ft grid on top of your map.
-    //    Suppose each grid square is 50 px on the image. Uncomment & adjust:
+    // ▮ G) (OPTIONAL) Draw a grid overlay if you want a 5-ft grid:
+    //    Suppose each square is 50 px on the image. Uncomment & adjust:
     /*
     var gridPixelSize = 50; // e.g. 50 px per 5-ft square
 
@@ -100,8 +95,7 @@
     }
     */
 
-    // ▮ H) Embed your Obsidian “data.json” object as a JavaScript variable.
-    //    I’ve copied in exactly the snippet you provided. You can paste your full JSON here.
+    // ▮ H) Embed your Obsidian “data.json” object as a JavaScript variable
     var markerData = {
       "id": "EncounterPublishTest",
       "lastAccessed": 1748933312165,
@@ -109,67 +103,83 @@
         {
           "id": "ID_5858e9398b9a",
           "type": "default",
-          "loc": [
-            756,
-            789.999813031691
-          ],
+          "loc": [756, 789.999813031691],
           "layer": "%5B%5B66-Road-Encounter-L.jpg%5D%5D",
           "mutable": true,
           "command": false,
-          "percent": [
-            0.7181816482106282,
-            -0.6690265486725664
-          ],
+          "percent": [0.7181816482106282, -0.6690265486725664],
+          "description": null,
+          "minZoom": null,
+          "maxZoom": null,
+          "tooltip": "hover"
+        },
+        {
+          "id": "ID_4adb583bc92a",
+          "type": "default",
+          "loc": [434, 776.0014957464709],
+          "layer": "%5B%5B66-Road-Encounter-L.jpg%5D%5D",
+          "mutable": true,
+          "command": false,
+          "percent": [0.7054559052240645, -0.384070796460177],
+          "description": null,
+          "minZoom": null,
+          "maxZoom": null,
+          "tooltip": "hover"
+        },
+        {
+          "id": "ID_b8f928ab3bb9",
+          "type": "default",
+          "loc": [560, 352.0011218098532],
+          "layer": "%5B%5B66-Road-Encounter-L.jpg%5D%5D",
+          "mutable": true,
+          "command": false,
+          "percent": [0.3200010198271393, -0.49557522123893805],
           "description": null,
           "minZoom": null,
           "maxZoom": null,
           "tooltip": "hover"
         }
-        // … you can add more marker objects here …
-      ]
+      ],
+      "overlays": [],
+      "shapes": [],
+      "files": []
     };
 
-    // ▮ I) Loop through each marker in markerData.markers and add it to the map
+    // ▮ I) Loop through each marker and add to the map
     markerData.markers.forEach(function(m) {
-      // 1) Decode the “layer” field to see which image this marker belongs to.
-      //    In Obsidian Leaflet, layer is often stored as a URI‐encoded wiki link: e.g. "%5B%5B66-Road-Encounter-L.jpg%5D%5D".
-      //    We’ll decode it and strip the "[[ ]]" so we get "66-Road-Encounter-L.jpg".
+      // 1) Decode “layer” from URI-encoded wiki link to plain filename:
       var decodedLayer = decodeURIComponent(m.layer);
-      //    decodedLayer === "[[66-Road-Encounter-L.jpg]]"
+      //    e.g. "[[66-Road-Encounter-L.jpg]]"
       var plainLayerName = decodedLayer.replace(/^\[\[(.*)\]\]$/, '$1');
 
-      // 2) If this marker’s layer matches our battlemap filename, we place it.
+      // 2) Only place markers on this specific image
       if (plainLayerName === '66-Road-Encounter-L.jpg') {
-        // The JSON “loc” field is [x, y] in pixel coordinates (with origin at top-left).
+        // JSON “loc” = [pixelX, pixelY]
         var pixelX = m.loc[0];
         var pixelY = m.loc[1];
 
-        // For CRS.Simple, Leaflet’s latLng is [y, x]
+        // For CRS.Simple, Leaflet’s latLng is [pixelY, pixelX]
         var latlng = L.latLng(pixelY, pixelX);
 
         // Create a default Leaflet marker at that point
         var pin = L.marker(latlng).addTo(map);
 
-        // 3) If the JSON has a “tooltip” or “description,” bind it:
-        //    You can change this to “bindPopup” if you want click-activated popups
-        //    or show some other field (m.description, etc.). Here we’ll show “m.id” on hover.
+        // 3) Bind a tooltip or popup on hover showing the marker’s ID
         if (m.tooltip === 'hover') {
           pin.bindTooltip(m.id, { permanent: false, direction: 'top' });
         } else if (m.description) {
-          // If the JSON supplied a description instead
           pin.bindPopup(m.description);
         } else {
-          // Fallback to showing the marker ID on hover
           pin.bindTooltip(m.id, { permanent: false, direction: 'top' });
         }
 
-        // 4) (OPTIONAL) If your JSON had `minZoom` or `maxZoom`, you could set them here:
-        //    if (m.minZoom !== null) pin.options.minZoom = m.minZoom;
-        //    if (m.maxZoom !== null) pin.options.maxZoom = m.maxZoom;
+        // 4) (OPTIONAL) Apply minZoom / maxZoom if provided:
+        // if (m.minZoom !== null) pin.options.minZoom = m.minZoom;
+        // if (m.maxZoom !== null) pin.options.maxZoom = m.maxZoom;
       }
     });
 
-    // ▮ J) (OPTIONAL) Example: Add another marker manually for demonstration
+    // ▮ J) (OPTIONAL) Example of adding another manual marker:
     /*
     L.circleMarker(
       L.latLng(900, 300),
