@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Leaflet Battlemap with Obsidian Parameters</title>
+  <title>Leaflet Battlemap with Corrected Marker Positions</title>
 
-  <!-- 1) Leaflet CSS (no integrity to avoid possible SRI issues) -->
+  <!-- 1) Leaflet CSS (no integrity to avoid SRI issues) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -22,8 +22,8 @@
     #map {
       width: 95%;
       height: 850px;
-      margin: 0 auto;          /* center horizontally in the viewport */
-      background: #000;        /* fallback if the image does not load */
+      margin: 0 auto;          /* center horizontally */
+      background: #000;        /* fallback if the image fails to load */
     }
   </style>
 </head>
@@ -31,13 +31,13 @@
 <body>
   <!-- 3) Optional heading to confirm the page loaded -->
   <h2 style="text-align: center; margin: 10px 0;">
-    Custom Battlemap (66-Road-Encounter-L) with Obsidian Leaflet Settings
+    Battlemap (66-Road-Encounter-L) with Correct Marker Positions
   </h2>
 
   <!-- 4) The Leaflet map container -->
   <div id="map"></div>
 
-  <!-- 5) Leaflet JS (no integrity attribute) -->
+  <!-- 5) Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     crossorigin=""
@@ -50,11 +50,10 @@
       minZoom: -1.5,      // Obsidian “minZoom: -1.5”
       maxZoom: 1,         // Obsidian “maxZoom: 1”
       zoomDelta: 0.5,     // Obsidian “zoomDelta: 0.5”
-      zoomSnap: 0.5       // Allow snapping to halves as well
+      zoomSnap: 0.5       // Snap zoom to increments of 0.5
     });
 
-    // ▮ B) The pixel dimensions of the battlemap as defined in Obsidian:
-    //    height_y = 1100 px, width_x = 1130 px
+    // ▮ B) The pixel dimensions of the battlemap (height_y=1100, width_x=1130)
     var imgWidth  = 1130;
     var imgHeight = 1100;
 
@@ -65,18 +64,18 @@
       [imgHeight, imgWidth]   // y=1100, x=1130 (bottom-right)
     ];
 
-    // ▮ D) Overlay your JPEG/PNG battlemap onto the Leaflet canvas:
+    // ▮ D) Overlay your battlemap image onto the Leaflet canvas:
     var battlemap = L.imageOverlay(
       '66-Road-Encounter-L.jpg',
       imageBounds
     ).addTo(map);
 
-    // ▮ E) Center the map at half of the height/width with defaultZoom = –1:
+    // ▮ E) Center the map at half of height/width with defaultZoom = –1:
     //    lat = 550  (1100/2),  long = 565  (1130/2)
     var centerPoint = L.latLng(550, 565);
     map.setView(centerPoint, -1);  // Obsidian “defaultZoom: -1”
 
-    // ▮ F) Constrain panning so the user can’t drag outside the battlemap:
+    // ▮ F) Constrain panning so users can’t drag outside the battlemap:
     map.setMaxBounds(imageBounds);
     map.on('drag', function() {
       map.panInsideBounds(imageBounds, { animate: false });
@@ -158,18 +157,20 @@
 
     // ▮ J) Loop through each marker and add it if its “layer” matches this image:
     markerData.markers.forEach(function(m) {
-      // Decode the URI-encoded layer string and strip [[ ]]
+      // 1) Decode the URI-encoded layer string and strip [[ ]]
       var decodedLayer = decodeURIComponent(m.layer); 
       // decodedLayer === "[[66-Road-Encounter-L.jpg]]"
       var plainLayerName = decodedLayer.replace(/^\[\[(.*)\]\]$/, '$1');
 
       if (plainLayerName === '66-Road-Encounter-L.jpg') {
-        // “loc” is [pixelX, pixelY]; Leaflet CRS.Simple uses [y, x]
-        var pixelX = m.loc[0];
-        var pixelY = m.loc[1];
+        // Now treat m.loc as [pixelY, pixelX]:
+        var pixelY = m.loc[0];
+        var pixelX = m.loc[1];
+
+        // For CRS.Simple, latLng is [y, x]:
         var latlng = L.latLng(pixelY, pixelX);
 
-        // Place a default marker
+        // Place a default marker at that point
         var pin = L.marker(latlng).addTo(map);
 
         // Bind a tooltip on hover showing the marker’s ID
@@ -181,19 +182,13 @@
           pin.bindTooltip(m.id, { permanent: false, direction: 'top' });
         }
 
-        // (OPTIONAL) If your JSON had minZoom/maxZoom, you could apply:
+        // (OPTIONAL) If your JSON had minZoom/maxZoom:
         // if (m.minZoom !== null) pin.options.minZoom = m.minZoom;
         // if (m.maxZoom !== null) pin.options.maxZoom = m.maxZoom;
       }
     });
 
-    // ▮ K) (OPTIONAL) Add any other manual markers or shapes here if needed.
-    // For example:
-    /*
-    L.circleMarker([900, 300], { radius: 8, color: 'yellow', fillOpacity: 0.8 })
-      .addTo(map)
-      .bindPopup('Manual marker at pixel [300,900]');
-    */
+    // ▮ K) (OPTIONAL) Add any other manual markers or shapes here.
   </script>
 </body>
 </html>
