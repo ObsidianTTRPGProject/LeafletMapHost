@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Leaflet Custom Battlemap</title>
+  <title>Leaflet Custom Battlemap with Markers</title>
 
-  <!-- 1) Leaflet CSS (no integrity attribute to avoid any SRI issues) -->
+  <!-- 1) Leaflet CSS (no integrity to avoid possible SRI issues) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -17,110 +17,167 @@
       padding: 0;
       height: 100%;
     }
-
-    /* 2) Give #map a fixed height so it’s visible */
+    /* 2) The map container needs an explicit height */
     #map {
       width: 100%;
-      height: 600px; /* you can adjust this as needed */
-      background: #000; /* optional: helps diagnose if image fails to load */
+      height: 600px;
+      background: #000; /* fallback if the image fails to load */
     }
   </style>
 </head>
 
 <body>
-  <!-- 3) (Optional) A heading so you know the page loaded -->
-  <h2 style="text-align:center; margin: 10px 0;">Custom Battlemap (66-Road-Encounter-L)</h2>
+  <!-- 3) Optional heading to confirm the page is loading -->
+  <h2 style="text-align: center; margin: 10px 0;">
+    Custom Battlemap (66-Road-Encounter-L) with Obsidian Markers
+  </h2>
 
-  <!-- 4) The Leaflet map container -->
+  <!-- 4) Leaflet map container -->
   <div id="map"></div>
 
-  <!-- 5) Leaflet JS (no integrity attribute) -->
+  <!-- 5) Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     crossorigin=""
   ></script>
 
   <script>
-    // ▮ A) Tell Leaflet to use a “simple” CRS (no lat/lng projection)
+    // ▮ A) Initialize Leaflet with CRS.Simple (so x/y are pixel coords)
     var map = L.map('map', {
       crs: L.CRS.Simple,
-      minZoom: -1,        // allow user to zoom out if they want
-      maxZoom: 2          // adjust as needed (bigger => more zoom‐in)
+      minZoom: -1,
+      maxZoom: 2
     });
 
-    // ▮ B) Define the dimensions of your JPEG/PNG in **pixels**
-    //    In our case, the image is 1100 px (width) × 1130 px (height).
-    //    You can double-check by right-clicking the JPEG → Properties, or:
-    //      var img = new Image(); img.src = '66-Road-Encounter-L.jpg'; console.log(img.width, img.height);
+    // ▮ B) The pixel dimensions of your JPEG/PNG battlemap.
+    //    In this example, 66-Road-Encounter-L.jpg is 1100×1130 px.
     var imgWidth  = 1100;
     var imgHeight = 1130;
 
-    // ▮ C) Create “bounds” in the Simple CRS: [top-left, bottom-right]
-    //    Leaflet expects bounds in the form [[y₁, x₁], [y₂, x₂]].
-    //    Here, (0,0) is top-left; (imgHeight, imgWidth) is bottom-right.
-    var southWest = map.unproject([0, imgHeight], map.getMaxZoom());    // top-left corner
-    var northEast = map.unproject([imgWidth, 0], map.getMaxZoom());     // bottom-right corner
-    // Actually, unproject([px, py]) returns latlng; but for CRS.Simple, you can also do L.latLng(y, x) directly.
-    // For clarity, we’ll define bounds as “pixel coordinates interpreted as CRS.Simple”:
-    var imageBounds = [[imgHeight, 0], [0, imgWidth]]; 
-    // ↑ Or use: var imageBounds = [[0, 0], [imgHeight, imgWidth]] depending on how you want “orientation.”
-    // Leaflet’s docs often show: var imageBounds = [[0,0], [height, width]] when using CRS.Simple.
+    // ▮ C) Compute “bounds” in CRS.Simple coordinates.
+    //    Leaflet expects [[topLeftY, topLeftX], [bottomRightY, bottomRightX]].
+    //
+    //    For a Simple CRS map, (0,0) is the top-left of the image:
+    //      → top-left pixel = [0, 0]
+    //      → bottom-right = [imgHeight, imgWidth]
+    //
+    var imageBounds = [[0, 0], [imgHeight, imgWidth]];
 
-    // ▮ D) Add the image overlay to the map with those bounds.
+    // ▮ D) Add the image overlay to the map
     var battlemap = L.imageOverlay(
-      '66-Road-Encounter-L.jpg',  // relative URL to your file (in same folder)
-      imageBounds, 
-      { opacity: 1.0 }
+      '66-Road-Encounter-L.jpg',
+      imageBounds
     ).addTo(map);
 
-    // ▮ E) Set the view so that the image is centered and at a good zoom.
-    //    We choose the center of the image (imgWidth/2, imgHeight/2) in CRS.Simple coords.
+    // ▮ E) Center & zoom so the entire image is visible at first
     var centerPoint = L.latLng(imgHeight / 2, imgWidth / 2);
-    map.setView(centerPoint, 0);  // “zoom 0” lets you see the entire image initially
+    map.setView(centerPoint, 0);
 
-    // ▮ F) Optional: Constrain the user so they can’t pan off into empty space
-    //    By setting maxBounds to the same “pixel bounds” you used above:
+    // ▮ F) Constrain panning so users can’t drag outside the image
     map.setMaxBounds(imageBounds);
     map.on('drag', function() {
       map.panInsideBounds(imageBounds, { animate: false });
     });
 
-    // ▮ G) (Optional) If you want a 5 ft‐grid overlay, you can add a simple grid of polylines:
-    //    Suppose each square is 50 px on your image. You can draw horizontal/vertical lines at intervals of 50 px.
-    //    Example: draw vertical lines every 50 px from x=0→x=imgWidth, and horizontal from y=0→y=imgHeight.
-    //    Uncomment the code below and adjust `gridPixelSize = 50;` as needed.
-
+    // ▮ G) (OPTIONAL) Draw a grid overlay if you want a 5-ft grid on top of your map.
+    //    Suppose each grid square is 50 px on the image. Uncomment & adjust:
     /*
-    var gridPixelSize = 50; // e.g., 50 px = 5 ft square
-    var gridLines = [];
+    var gridPixelSize = 50; // e.g. 50 px per 5-ft square
 
-    // Vertical lines
+    // Draw vertical lines
     for (var x = 0; x <= imgWidth; x += gridPixelSize) {
-      var line = L.polyline([
-        [0, x],          // top at y=0, x
-        [imgHeight, x]   // bottom at y=imgHeight, x
-      ], {color: '#666', weight: 1, opacity: 0.5}).addTo(map);
-      gridLines.push(line);
+      L.polyline(
+        [[0, x], [imgHeight, x]],
+        { color: '#666', weight: 1, opacity: 0.5 }
+      ).addTo(map);
     }
-
-    // Horizontal lines
+    // Draw horizontal lines
     for (var y = 0; y <= imgHeight; y += gridPixelSize) {
-      var line = L.polyline([
-        [y, 0],          // left at x=0, y
-        [y, imgWidth]    // right at x=imgWidth, y
-      ], {color: '#666', weight: 1, opacity: 0.5}).addTo(map);
-      gridLines.push(line);
+      L.polyline(
+        [[y, 0], [y, imgWidth]],
+        { color: '#666', weight: 1, opacity: 0.5 }
+      ).addTo(map);
     }
     */
 
-    // ▮ H) (Optional) Add a marker at a given pixel‐coord
-    //    E.g. place an encounter token at “pixel (600, 700)”. We do:
-    var marker = L.circleMarker(
-      L.latLng(700, 600), // [y, x] in pixel coordinates
-      { radius: 10, color: 'red', fillOpacity: 0.8 }
-    ).addTo(map);
-    marker.bindPopup("Encounter here");
+    // ▮ H) Embed your Obsidian “data.json” object as a JavaScript variable.
+    //    I’ve copied in exactly the snippet you provided. You can paste your full JSON here.
+    var markerData = {
+      "id": "EncounterPublishTest",
+      "lastAccessed": 1748933312165,
+      "markers": [
+        {
+          "id": "ID_5858e9398b9a",
+          "type": "default",
+          "loc": [
+            756,
+            789.999813031691
+          ],
+          "layer": "%5B%5B66-Road-Encounter-L.jpg%5D%5D",
+          "mutable": true,
+          "command": false,
+          "percent": [
+            0.7181816482106282,
+            -0.6690265486725664
+          ],
+          "description": null,
+          "minZoom": null,
+          "maxZoom": null,
+          "tooltip": "hover"
+        }
+        // … you can add more marker objects here …
+      ]
+    };
 
+    // ▮ I) Loop through each marker in markerData.markers and add it to the map
+    markerData.markers.forEach(function(m) {
+      // 1) Decode the “layer” field to see which image this marker belongs to.
+      //    In Obsidian Leaflet, layer is often stored as a URI‐encoded wiki link: e.g. "%5B%5B66-Road-Encounter-L.jpg%5D%5D".
+      //    We’ll decode it and strip the "[[ ]]" so we get "66-Road-Encounter-L.jpg".
+      var decodedLayer = decodeURIComponent(m.layer);
+      //    decodedLayer === "[[66-Road-Encounter-L.jpg]]"
+      var plainLayerName = decodedLayer.replace(/^\[\[(.*)\]\]$/, '$1');
+
+      // 2) If this marker’s layer matches our battlemap filename, we place it.
+      if (plainLayerName === '66-Road-Encounter-L.jpg') {
+        // The JSON “loc” field is [x, y] in pixel coordinates (with origin at top-left).
+        var pixelX = m.loc[0];
+        var pixelY = m.loc[1];
+
+        // For CRS.Simple, Leaflet’s latLng is [y, x]
+        var latlng = L.latLng(pixelY, pixelX);
+
+        // Create a default Leaflet marker at that point
+        var pin = L.marker(latlng).addTo(map);
+
+        // 3) If the JSON has a “tooltip” or “description,” bind it:
+        //    You can change this to “bindPopup” if you want click-activated popups
+        //    or show some other field (m.description, etc.). Here we’ll show “m.id” on hover.
+        if (m.tooltip === 'hover') {
+          pin.bindTooltip(m.id, { permanent: false, direction: 'top' });
+        } else if (m.description) {
+          // If the JSON supplied a description instead
+          pin.bindPopup(m.description);
+        } else {
+          // Fallback to showing the marker ID on hover
+          pin.bindTooltip(m.id, { permanent: false, direction: 'top' });
+        }
+
+        // 4) (OPTIONAL) If your JSON had `minZoom` or `maxZoom`, you could set them here:
+        //    if (m.minZoom !== null) pin.options.minZoom = m.minZoom;
+        //    if (m.maxZoom !== null) pin.options.maxZoom = m.maxZoom;
+      }
+    });
+
+    // ▮ J) (OPTIONAL) Example: Add another marker manually for demonstration
+    /*
+    L.circleMarker(
+      L.latLng(900, 300),
+      { radius: 8, color: 'yellow', fillOpacity: 0.8 }
+    )
+    .addTo(map)
+    .bindPopup('Manual marker at pixel (300, 900)');
+    */
   </script>
 </body>
 </html>
